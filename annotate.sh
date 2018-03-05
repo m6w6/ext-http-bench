@@ -1,5 +1,5 @@
 #!/bin/bash
 callgrind_annotate \
-	$(ls *.log | tail -n1) \
+	$(ls logs/cg_*.log | tail -n1) \
 	"$@" \
 	| less

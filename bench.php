@@ -38,6 +38,7 @@ class event {
 	public $time;
 	public $mem;
 	public $count;
+	public $failed;
 
 	function __construct($name) {
 		$this->name = $name;
@@ -93,11 +94,16 @@ class timer {
 		$unit($this->tpt);
 		$record = $this->stop($unit);
 		$record->count = $unit->count();
+		$record->failed = $unit->failed();
 		return $this;
 	}
 
 	function __toString() {
 		$current = end($this->events);
+		
+		if ($current->failed) {
+			return "\n";
+		}
 		
 		if ($current == "init") {
 			return sprintf(
@@ -143,8 +149,9 @@ class unit implements Countable {
 	private $exec;
 	private $data;
 	private $count;
+	private $failed = false;
 
-	function __construct(string $test, int $count, string $data, callable $exec) {
+	function __construct(string $test, int $count, $data, callable $exec) {
 		$this->test = $test;
 		$this->count = $count;
 		$this->data = $data;
@@ -152,14 +159,23 @@ class unit implements Countable {
 	}
 
 	function __invoke(float $time) {
-		$cnt = $this->count * $time;
-		$run = round($cnt/10);
-		for ($i = 0; $i < 10; ++$i) {
-			for ($j = 0; $j < $run; ++$j) {
-				($this->exec)($this->data);
+		try {
+			$cnt = $this->count * $time;
+			$run = round($cnt/10);
+			for ($i = 0; $i < 10; ++$i) {
+				for ($j = 0; $j < $run; ++$j) {
+					($this->exec)($this->data);
+				}
+				print ".";
 			}
-			print ".";
+		} catch (\Throwable $e) {
+			$this->failed = true;
+			fprintf(STDERR, "	FAILURE: %s\n", $e->getMessage());
 		}
+	}
+	
+	function failed() {
+		return $this->failed;
 	}
 	
 	function count() {
@@ -175,6 +191,9 @@ class unit implements Countable {
 
 $timer = new timer($argv[1] ?? 1, new fmt);
 $units = glob(__DIR__."/unit/*.php");
+if (isset($argv[2])) {
+	$units = preg_grep("/{$argv[2]}/", $units);
+}
 
 printf("Running %d units...\n%s\n", count($units), $timer);
 

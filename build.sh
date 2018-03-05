@@ -38,6 +38,6 @@ valgrind \
 	--tool=callgrind \
 	--dump-instr=yes \
 	--branch-sim=yes \
-	--callgrind-out-file=cg_$log \
-	 php-src/sapi/cli/php bench.php 0.1 \
-		2>&1 | tee bb_$log
+	--callgrind-out-file=logs/cg_$log \
+	 php-src/sapi/cli/php bench.php 0.1 $1 \
+		2>&1 | tee logs/bb_$log
